@@ -32,7 +32,7 @@
 
 ## ER 図
 
-![ER図](docs/er_diagram.jpg)
+![ER図](docs/er_diagram.png)
 
 ## URL
 

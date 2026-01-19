@@ -9,6 +9,7 @@ use App\Http\Middleware\AdminStatusMiddleware;
 use Laravel\Fortify\Http\Controllers\VerifyEmailController;
 use Illuminate\Http\Request;
 use App\Http\Requests\CorrectionRequest;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,7 +26,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth','verified')->group(function () {
     Route::get('/attendance', [UserController::class, 'index']);
     Route::post('/attendance', [UserController::class, 'attendance']);
     Route::get('/attendance/list', [UserController::class, 'list']);
@@ -72,6 +73,7 @@ Route::middleware(['auth', AdminStatusMiddleware::class])->group(function () {
     });
 });
 
+
 Route::get('/admin/login', [AuthController::class, 'adminLogin']);
 Route::post('/admin/login', [AuthController::class, 'adminDoLogin']);
 
@@ -82,9 +84,5 @@ Route::get('/email/verify', function () {
     return view('auth.verify-email');
 })->middleware(['auth'])->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
-    ->middleware(['auth','signed'])
+    ->middleware(['signed'])
     ->name('verification.verify');
-Route::post('/email/verification-notification', function (Request $request) {
-    $request->user()->sendEmailVerificationNotification();
-    return back()->with('message', '認証リンクを再送信しました');
-})->middleware(['auth', 'throttle:6,1'])->name('verification.send');

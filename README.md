@@ -34,6 +34,9 @@
 
 ![ER図](docs/er_diagram.png)
 
+## ログイン情報
+- 管理者：メールアドレス sample@sample.com  パスワード password
+- ユーザー：メールアドレス sample1@sample.com パスワード password
 ## URL
 
 - 開発環境：http://localhost/

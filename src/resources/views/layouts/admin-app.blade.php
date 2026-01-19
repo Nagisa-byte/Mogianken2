@@ -14,7 +14,7 @@
     <header class="header">
         <div class="header__inner">
             <a class="header__logo" href="/">
-                <img class="header__logo--img" src="{{ asset('images/logo.svg') }}" alt="logo">
+                <img class="header__logo--img" src="{{ asset('images/coachtech.jpg') }}" alt="COACHTECH">
             </a>
             @if(Auth::check() && Auth::user()->admin_status)
             <form action="/admin/logout" method="post">

@@ -58,7 +58,11 @@
                 <p class="table__description--item">{{ $attendanceRecord['total_time'] }}</p>
             </td>
             <td class="table__description">
+                @if($attendanceRecord['id'])
                 <a class="table__item--detail-link" href="{{ url('/attendance/' . $attendanceRecord['id']) }}">詳細</a>
+                @else
+                <span class="table__item--detail-link is-disabled">詳細</span>
+                @endif
             </td>
         </tr>
         @endforeach

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use App\Models\User;
 use App\Models\Application;
 use App\Models\ApplicationBreak;
@@ -139,26 +140,32 @@ class UserController extends Controller
 
         $startOfMonth = $date->copy()->startOfMonth();
         $endOfMonth   = $date->copy()->endOfMonth();
+        $period = CarbonPeriod::create($startOfMonth, $endOfMonth);
 
         $attendanceRecords = AttendanceRecord::where('user_id', $user->id)
             ->whereBetween('date', [$startOfMonth, $endOfMonth])
-            ->get();
+            ->get()
+            ->keyBy(function ($record) {
+                return Carbon::parse($record->date)->toDateString();
+            });
 
-        $formatted = $attendanceRecords->map(function ($rec) {
-            $weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-            $d = Carbon::parse($rec->date);
-            return [
-                'id'               => $rec->id,
-                'date'             => $d->format('m/d') . "({$weekdays[$d->dayOfWeek]})",
-                'clock_in'         => $rec->clock_in  ? Carbon::parse($rec->clock_in)->format('H:i') : null,
-                'clock_out'        => $rec->clock_out ? Carbon::parse($rec->clock_out)->format('H:i') : null,
-                'total_time'       => $rec->total_time,
-                'total_break_time' => $rec->total_break_time,
+        $formattedAttendanceRecords = [];
+
+        foreach ($period as $day) {
+            $attendance = $attendanceRecords[$day->toDateString()] ?? null;
+
+            $formattedAttendanceRecords[] = [
+                'id' => $attendance?->id,
+                'date' => $day->format('Y-m-d'),
+                'clock_in' => $attendance?->clock_in ?? '-',
+                'clock_out' => $attendance?->clock_out ?? '-',
+                'total_break_time' => $attendance?->total_break_time ?? '-',
+                'total_time' => $attendance?->total_time ?? '-',
             ];
-        });
+        }
 
         return view('user/user-attendance-list', [
-            'formattedAttendanceRecords' => $formatted,
+            'formattedAttendanceRecords' => $formattedAttendanceRecords,
             'date'      => $date,
             'nextMonth' => $date->copy()->addMonth()->format('Y-m'),
             'previousMonth' => $date->copy()->subMonth()->format('Y-m'),

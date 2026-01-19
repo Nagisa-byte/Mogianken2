@@ -118,3 +118,7 @@
 .table__row:not(:last-child) {
     border-bottom: 2px solid #E1E1E1;
 }
+.is-disabled {
+    color: #ccc;
+    pointer-events: none;
+}

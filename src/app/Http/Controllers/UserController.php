@@ -145,7 +145,7 @@ class UserController extends Controller
             ->get();
 
         $formatted = $attendanceRecords->map(function ($rec) {
-            $weekdays = ['日','月','火','水','木','金','土'];
+            $weekdays = ['日', '月', '火', '水', '木', '金', '土'];
             $d = Carbon::parse($rec->date);
             return [
                 'id'               => $rec->id,
@@ -160,10 +160,11 @@ class UserController extends Controller
         return view('user/user-attendance-list', [
             'formattedAttendanceRecords' => $formatted,
             'date'      => $date,
-            'nextMonth'=> $date->copy()->addMonth()->format('Y-m'),
-            'previousMonth'=> $date->copy()->subMonth()->format('Y-m'),
+            'nextMonth' => $date->copy()->addMonth()->format('Y-m'),
+            'previousMonth' => $date->copy()->subMonth()->format('Y-m'),
         ]);
     }
+
 
     public function detail($id)
     {
@@ -247,31 +248,75 @@ class UserController extends Controller
         return redirect('/stamp_correction_request/list');
     }
 
-    public function applicationList()
+    public function applicationList(Request $request)
     {
-        $user         = Auth::user();
-        $applications = Application::where('user_id', $user->id)->get();
+        $user = Auth::user();
 
-        // 一覧表示のために必要なデータを取得
-        $formattedApplications = $applications->map(function ($application) {
-            return [
-                'id'            => $application->id,
-                'application_date' => $application->application_date
-                                ? Carbon::parse($application->application_date)->format('Y/m/d')
-                                : null,
-                'date'          => $application->new_date,
-                'clock_in'      => $application->new_clock_in,
-                'clock_out'     => $application->new_clock_out,
-                'comment'       => $application->comment,
-                'approval_status' => $application->approval_status,
-            ];
-        });
+        // 表示したい月（リクエストで取得できるようにしてもOK）
+        $date = Carbon::parse($request->query('date', now()));
+        $startOfMonth = $date->copy()->startOfMonth();
+        $endOfMonth   = $date->copy()->endOfMonth();
 
-        return view(
-            'user/user-application-list',
-            compact('user', 'formattedApplications')
-        );
+        // 今月の勤怠レコード
+        $attendanceRecords = AttendanceRecord::where('user_id', $user->id)
+            ->whereBetween('date', [$startOfMonth, $endOfMonth])
+            ->get()
+            ->keyBy(function ($rec) {
+                return Carbon::parse($rec->date)->format('Y-m-d');
+            });
+
+        // 今月の申請データ
+        $applications = Application::where('user_id', $user->id)
+            ->whereBetween('new_date', [$startOfMonth, $endOfMonth])
+            ->get()
+            ->keyBy(function ($app) {
+                return Carbon::parse($app->new_date)->format('Y-m-d');
+            });
+
+        // 日付ごとにデータを整形
+        $formattedApplications = [];
+        for ($d = $startOfMonth; $d->lte($endOfMonth); $d->addDay()) {
+            $dayKey = $d->format('Y-m-d');
+
+            if (isset($applications[$dayKey])) {
+                $app = $applications[$dayKey];
+                $formattedApplications[] = [
+                    'id'              => $app->id,
+                    'date'            => $dayKey,
+                    'clock_in'        => $app->new_clock_in,
+                    'clock_out'       => $app->new_clock_out,
+                    'comment'         => $app->comment,
+                    'approval_status' => $app->approval_status,
+                    'application_date' => $app->application_date ? Carbon::parse($app->application_date)->format('Y/m/d') : null,
+                ];
+            } elseif (isset($attendanceRecords[$dayKey])) {
+                $rec = $attendanceRecords[$dayKey];
+                $formattedApplications[] = [
+                    'id'              => $rec->id,
+                    'date'            => $dayKey,
+                    'clock_in'        => $rec->clock_in ? Carbon::parse($rec->clock_in)->format('H:i') : null,
+                    'clock_out'       => $rec->clock_out ? Carbon::parse($rec->clock_out)->format('H:i') : null,
+                    'comment'         => $rec->comment,
+                    'approval_status' => '勤務済',
+                    'application_date' => null,
+                ];
+            } else {
+                // 勤務していない日
+                $formattedApplications[] = [
+                    'id'              => null,
+                    'date'            => $dayKey,
+                    'clock_in'        => null,
+                    'clock_out'       => null,
+                    'comment'         => null,
+                    'approval_status' => '未勤務',
+                    'application_date' => null,
+                ];
+            }
+        }
+
+        return view('user/user-application-list', compact('user', 'formattedApplications', 'date'));
     }
+
 
     public function applicationDetail($id)
     {

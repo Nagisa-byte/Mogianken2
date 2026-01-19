@@ -60,7 +60,7 @@ class AuthController extends Controller
         Auth::login($user);
 
         // ★ 勤怠登録画面へ遷移
-        return redirect('/attendance');
+        return redirect('/verification.notice');
     }
 
     public function doLogin(LoginRequest $request)

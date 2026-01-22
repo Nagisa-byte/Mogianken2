@@ -22,10 +22,12 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 |
 */
 
+#Route::get('/', function () {
+#    return view('welcome');
+#});
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('/attendance');
 });
-
 Route::middleware('auth','verified')->group(function () {
     Route::get('/attendance', [UserController::class, 'index']);
     Route::post('/attendance', [UserController::class, 'attendance']);
